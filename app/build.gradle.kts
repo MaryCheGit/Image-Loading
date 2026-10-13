@@ -59,7 +59,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.media3:media3-common:1.3.1")
+    implementation("io.coil-kt:coil-compose:2.5.0") // Библиотека Coil для Compose
+    implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

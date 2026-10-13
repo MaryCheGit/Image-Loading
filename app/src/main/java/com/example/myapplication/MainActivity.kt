@@ -1,29 +1,36 @@
 package com.example.myapplication
 
-import android.app.DownloadManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
+import android.util.Log
+import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.viewinterop.AndroidView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.bumptech.glide.Glide
 import com.example.myapplication.ui.theme.MyApplicationTheme
-import java.io.File
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,57 +41,103 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Column {
-                        Text(
-                            text = "Start",
-                            fontSize = 20.sp,
-                            modifier = Modifier.clickable { startService("Started") }
-                        )
-                        Spacer(modifier = Modifier.height(30.dp))
-                        Text(
-                            text = "Stop",
-                            fontSize = 20.sp,
-                            modifier = Modifier.clickable { stopService() }
-                        )
-                        Spacer(modifier = Modifier.height(30.dp))
-                        Text(
-                            text = "Download",
-                            fontSize = 20.sp,
-                            modifier = Modifier.clickable { download() }
-                        )
-                    }
+                    ImageLoadingScreen()
                 }
             }
         }
     }
+}
 
-    private fun download() {
-        val fileUrl = "http://speedtest.ftp.otenet.gr/files/test10Mb.db"
-        val fileName = "test10Mb.db"
+@Composable
+fun ImageLoadingScreen() {
+    val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
-        val request = DownloadManager.Request(Uri.parse(fileUrl))
-            .setTitle(fileName)
-            .setDescription("Downloading")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+    // Валидный URL
+    val validUrl = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"
+    // Невалидный URL
+    val invalidUrl = "https://invalid-url-example.com/image.jpg"
 
-        val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        downloadManager.enqueue(request)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // ---------- ПУНКТ 4 (часть 1): Загрузка из ресурса с помощью Coil ----------
+        Text(text = "1. Из ресурса (Coil)", fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Image(
+            painter = painterResource(id = R.drawable.ic_launcher_background),
+            contentDescription = "Из ресурса",
+            modifier = Modifier.size(150.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ---------- ПУНКТ 4 (часть 2): Загрузка по валидному URL с placeholder ----------
+        Text(text = "2. По валидному URL (Coil)", fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(validUrl)
+                .crossfade(true)
+                .listener(
+                    onSuccess = { _, _ -> Log.d("IMAGE_LOAD", "Coil УСПЕХ: $validUrl") },
+                    onError = { _, result -> Log.e("IMAGE_LOAD", "Coil ОШИБКА: ${result.throwable.message}") }
+                )
+                .build(),
+            placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+            error = painterResource(id = R.drawable.ic_launcher_background),
+            contentDescription = "Валидный URL",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ---------- ПУНКТ 5: Загрузка по НЕвалидному URL с ошибкой (Coil) ----------
+        Text(text = "3. По НЕвалидному URL (Coil) + ошибка", fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(invalidUrl)
+                .crossfade(true)
+                .listener(
+                    onSuccess = { _, _ -> Log.d("IMAGE_LOAD", "Coil УСПЕХ (невалидный): $invalidUrl") },
+                    onError = { _, result -> Log.e("IMAGE_LOAD", "Coil ОШИБКА (невалидный): ${result.throwable.message}") }
+                )
+                .build(),
+            placeholder = painterResource(id = R.drawable.ic_launcher_foreground),
+            error = painterResource(id = R.drawable.ic_launcher_background),
+            contentDescription = "Невалидный URL",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ---------- Дополнительно: Загрузка по валидному URL с помощью Glide ----------
+        Text(text = "4. По валидному URL (Glide)", fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        AndroidView(
+            factory = { ctx ->
+                ImageView(ctx).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                }
+            },
+            update = { imageView ->
+                Glide.with(context)
+                    .load(validUrl)
+                    .placeholder(R.drawable.ic_launcher_foreground)
+                    .error(R.drawable.ic_launcher_background)
+                    .into(imageView)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+        )
     }
-
-    private fun startService(input: String) {
-        val myServiceIntent = Intent(this, MyForegroundService::class.java)
-        myServiceIntent.putExtra(Constants.inputExtra, input)
-        ContextCompat.startForegroundService(this, myServiceIntent)
-    }
-
-    public fun stopService() {
-        val serviceIntent = Intent(this, MyForegroundService::class.java)
-        stopService(serviceIntent)
-    }
-
-    @Composable
-    fun Test(name: String, modifier: Modifier = Modifier) {
-    }
-
 }
